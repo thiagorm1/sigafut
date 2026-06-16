@@ -1,0 +1,6 @@
+flask
+redis
+opencv-python-headless
+ultralytics
+python-dotenv
+flask-cors

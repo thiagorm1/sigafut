@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: sigafut-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: sigafut_db
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: sigafut_user
+      MYSQL_PASSWORD: sigafut_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:alpine
+    container_name: sigafut-redis
+    ports:
+      - "6379:6379"
+
+  sigafut-api:
+    build: ./sigafut-api
+    container_name: sigafut-api
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=sigafut_user
+      - DB_PASS=sigafut_password
+      - DB_NAME=sigafut_db
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./sigafut-api:/app
+      - /app/node_modules
+
+  sigafut-engine:
+    build: ./sigafut-engine
+    container_name: sigafut-engine
+    environment:
+      - REDIS_HOST=redis
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+    depends_on:
+      - redis
+    volumes:
+      - ./sigafut-engine:/app
+
+  sigafut-web:
+    build: ./sigafut-web
+    container_name: sigafut-web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - sigafut-api
+    volumes:
+      - ./sigafut-web:/app
+      - /app/node_modules
+
+volumes:
+  db_data:
