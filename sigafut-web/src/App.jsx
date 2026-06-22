@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Trophy, Shield, User, Clock } from 'lucide-react';
+import { Trophy, Shield, User, Clock, LogOut } from 'lucide-react';
+import Login from './pages/Login/Login';
 
 const socket = io('http://localhost:3000');
 
 function App() {
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -28,6 +30,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    document.title = isLoggedIn ? 'SIGAFUT - Dashboard' : 'SIGAFUT - Login';
+  }, [isLoggedIn]);
+
   const getEventIcon = (type) => {
     switch (type) {
       case 'goal': return <Trophy className="text-yellow-500" />;
@@ -35,6 +41,10 @@ function App() {
       default: return <User className="text-gray-500" />;
     }
   };
+
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8 font-sans">
@@ -45,9 +55,18 @@ function App() {
           </h1>
           <p className="text-gray-400 mt-1">Real-time Arena SIGAFUT Analytics & Highlights</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-sm font-medium">{connected ? 'System Online' : 'Connecting...'}</span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-sm font-medium">{connected ? 'System Online' : 'Connecting...'}</span>
+          </div>
+          <button 
+            onClick={() => setIsLoggedIn(false)} 
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-650 hover:bg-red-700 active:scale-95 text-white rounded text-xs font-semibold transition border border-red-700/50 cursor-pointer"
+          >
+            <LogOut size={14} />
+            Sair
+          </button>
         </div>
       </header>
 
