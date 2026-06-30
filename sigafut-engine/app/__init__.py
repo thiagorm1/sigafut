@@ -9,6 +9,9 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
 
+    # Configuracao de upload
+    app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB max
+
     # Register Blueprints
     from .blueprints.camera_bp import camera_bp
     app.register_blueprint(camera_bp, url_prefix='/api/cameras')
