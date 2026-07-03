@@ -1,4 +1,5 @@
 const { Sequelize, DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
 
 const sequelize = new Sequelize(
     process.env.DB_NAME || 'sigafut_db',
@@ -10,6 +11,36 @@ const sequelize = new Sequelize(
         logging: false
     }
 );
+
+const User = sequelize.define('User', {
+    nome: { type: DataTypes.STRING, allowNull: false },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        validate: { isEmail: true }
+    },
+    senha: { type: DataTypes.STRING, allowNull: false },
+    role: {
+        type: DataTypes.ENUM('admin', 'operador', 'cliente'),
+        defaultValue: 'cliente'
+    }
+}, {
+    tableName: 'usuarios',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    hooks: {
+        beforeCreate: async (user) => {
+            const salt = await bcrypt.genSalt(10);
+            user.senha = await bcrypt.hash(user.senha, salt);
+        }
+    }
+});
+
+User.prototype.validarSenha = async function (senha) {
+    return bcrypt.compare(senha, this.senha);
+};
 
 const Team = sequelize.define('Team', {
     name: { type: DataTypes.STRING, allowNull: false },
@@ -65,6 +96,7 @@ Event.belongsTo(Player);
 
 module.exports = {
     sequelize,
+    User,
     Team,
     Player,
     Match,

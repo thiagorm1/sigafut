@@ -17,6 +17,10 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Auth routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 // Redis setup
 const redisClient = redis.createClient({
     url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`

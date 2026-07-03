@@ -1,3 +1,17 @@
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'operador', 'cliente') DEFAULT 'cliente',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Administrador pré-cadastrado (senha: senhasecreta)
+INSERT INTO usuarios (nome, email, senha, role)
+VALUES ('Administrador', 'admin@sigafut.br', '$2b$10$8J2U/TO.EnMmH.wLBjAlT.myjIwV4R7o1L2vh6XUK6xLTGf/fISQ.', 'admin');
+
 CREATE TABLE IF NOT EXISTS teams (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
