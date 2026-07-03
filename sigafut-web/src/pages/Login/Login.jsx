@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import './Login.css';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, onGoToRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -11,7 +11,7 @@ export default function Login({ onLoginSuccess }) {
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -35,14 +35,30 @@ export default function Login({ onLoginSuccess }) {
 
     setIsLoading(true);
 
-    // Simulate login request
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha: password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Erro ao fazer login. Tente novamente.');
+        setIsLoading(false);
+        return;
+      }
+
       setSuccess('Autenticação bem-sucedida! Entrando no sistema...');
       setTimeout(() => {
-        onLoginSuccess();
+        onLoginSuccess(data.user);
       }, 1200);
-    }, 1500);
+    } catch (err) {
+      setError('Erro de conexão com o servidor. Verifique se a API está rodando.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = (e) => {
@@ -171,6 +187,15 @@ export default function Login({ onLoginSuccess }) {
                   )}
                 </button>
               </form>
+
+              <div className="card-footer-register">
+                <p className="register-prompt">
+                  Não possui uma conta?{' '}
+                  <button type="button" className="register-link-button" onClick={onGoToRegister}>
+                    Criar conta
+                  </button>
+                </p>
+              </div>
             </>
           ) : (
             <>

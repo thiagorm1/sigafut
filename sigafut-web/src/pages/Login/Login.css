@@ -351,6 +351,38 @@
   user-select: none;
 }
 
+/* Card footer - Register link */
+.card-footer-register {
+  margin-top: 24px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #eef0ee;
+}
+
+.register-prompt {
+  font-size: 14px;
+  color: #5f6661;
+  margin: 0;
+}
+
+.register-link-button {
+  background: none;
+  border: none;
+  color: #2d6a4f;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-family: inherit;
+  padding: 0;
+}
+
+.register-link-button:hover {
+  color: #1b4332;
+  text-decoration: underline;
+}
+
 /* Animations */
 @keyframes cardFadeIn {
   from {
