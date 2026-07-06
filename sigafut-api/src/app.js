@@ -21,6 +21,10 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// Team routes
+const teamRoutes = require('./routes/teamRoutes');
+app.use('/api/teams', teamRoutes);
+
 // Redis setup
 const redisClient = redis.createClient({
     url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`
