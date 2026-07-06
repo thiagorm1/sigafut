@@ -396,13 +396,18 @@
   grid-template-columns: 80px repeat(7, 1fr);
   background: var(--surface);
   position: relative;
+  height: calc(17 * var(--hour-height));
+  min-height: calc(17 * var(--hour-height));
 }
 
 .time-axis {
-  border-right: 1px solid var(--border);
+  border-right: 2px solid #cbd5e1;
   background: #fafbfc;
   display: flex;
   flex-direction: column;
+  height: calc(17 * var(--hour-height));
+  min-height: calc(17 * var(--hour-height));
+  box-sizing: border-box;
 }
 
 .time-slot-label {
@@ -412,17 +417,19 @@
   justify-content: center;
   padding-top: 10px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--border-light);
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid #e2e8f0;
   box-sizing: border-box;
 }
 
 /* Grid columns for days */
 .day-col {
   position: relative;
-  border-right: 1px solid var(--border-light);
-  height: calc(9 * var(--hour-height)); /* 07:00 to 15:00 = 9 hours */
+  border-right: 1.5px solid #e2e8f0;
+  height: calc(17 * var(--hour-height)); /* 07:00 to 00:00 = 17 hours */
+  min-height: calc(17 * var(--hour-height));
+  box-sizing: border-box;
 }
 
 .day-col:last-child {
@@ -435,7 +442,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--border-light);
+  background: #e2e8f0;
   width: 100%;
 }
 
@@ -571,4 +578,748 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ─── Modal Nova Reserva ───────────────────────────── */
+.schedule-shell .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(27, 28, 28, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.25s ease;
+}
+
+.schedule-shell .modal-container {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 520px;
+  max-width: 90%;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid #e8eaed;
+}
+
+.schedule-shell .modal-container.large-modal {
+  width: 720px;
+  max-width: 95%;
+}
+
+.schedule-shell .modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8eaed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-shell .modal-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0;
+}
+
+.schedule-shell .modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .modal-close-btn:hover {
+  background: #f1f3f5;
+  color: var(--primary);
+}
+
+.schedule-shell .modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.schedule-shell .scrollable-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.schedule-shell .modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-shell .modal-form .form-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.schedule-shell .modal-form .font-bold-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+
+.schedule-shell .selected-summary-text {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  background-color: var(--light-green);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border-left: 3px solid var(--primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.schedule-shell .modal-input,
+.schedule-shell .modal-select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e8eaed;
+  background-color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.schedule-shell .modal-input:focus,
+.schedule-shell .modal-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(30, 70, 32, 0.15);
+}
+
+/* Checkbox Style */
+.schedule-shell .form-group-checkbox-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.schedule-shell .form-group-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-shell .modal-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #cbd5e1;
+  accent-color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .checkbox-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Form Grid */
+.schedule-shell .form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.schedule-shell .header-form-grid {
+  background-color: #f8f9fa;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e8eaed;
+}
+
+@media (max-width: 576px) {
+  .schedule-shell .form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* INTERACTIVE GRID SELECTOR TABLE */
+.schedule-shell .modal-grid-container {
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.schedule-shell .modal-grid-selector {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  table-layout: fixed;
+}
+
+.schedule-shell .modal-grid-selector th,
+.schedule-shell .modal-grid-selector td {
+  border: 1px solid #f1f3f5;
+  font-size: 12px;
+  padding: 6px 2px;
+}
+
+.schedule-shell .modal-grid-selector th {
+  background: #f8f9fa;
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 11px;
+  padding: 8px 2px;
+  border-bottom: 2px solid #e8eaed;
+}
+
+.schedule-shell .modal-grid-selector .hour-col-header {
+  width: 60px;
+}
+
+.schedule-shell .modal-grid-selector .hour-label-cell {
+  background: #f8f9fa;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 11px;
+  border-right: 2px solid #e8eaed;
+}
+
+.schedule-shell .grid-slot-cell {
+  height: 32px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background-color: #ffffff;
+  position: relative;
+}
+
+.schedule-shell .grid-slot-cell:hover {
+  background-color: var(--light-green);
+}
+
+.schedule-shell .grid-slot-cell.selected {
+  background-color: var(--accent-green) !important;
+  color: #ffffff;
+}
+
+.schedule-shell .cell-check {
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+/* Modal Footer */
+.schedule-shell .modal-footer {
+  padding: 16px 24px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e8eaed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-shell .modal-footer-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.schedule-shell .btn-modal-delete {
+  background: transparent;
+  border: 1px solid #fee2e2;
+  color: #dc2626;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .btn-modal-delete:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.schedule-shell .btn-modal-cancel {
+  background: transparent;
+  border: 1px solid #e8eaed;
+  color: var(--text-secondary);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .btn-modal-cancel:hover {
+  background: #e9ecef;
+}
+
+.schedule-shell .btn-modal-submit {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .btn-modal-submit:hover {
+  background-color: var(--primary-dark);
+  box-shadow: 0 4px 10px rgba(30, 70, 32, 0.2);
+}
+
+/* ─── Status Colors (Paid, Down-payment, Pending) ─── */
+
+/* Confirmado e Pago (Verde) */
+.event-card.status-pago {
+  background-color: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-left: 5px solid #2e7d32;
+  color: #1b5e20;
+}
+.event-card.status-pago .event-title {
+  color: #1b5e20;
+}
+.event-card.status-pago .event-subtitle {
+  color: #2e7d32;
+}
+
+/* Sinal Pago (Amarelo) */
+.event-card.status-sinal {
+  background-color: #fffde7;
+  border: 1px solid #fff9c4;
+  border-left: 5px solid #fbc02d;
+  color: #e65100;
+}
+.event-card.status-sinal .event-title {
+  color: #e65100;
+}
+.event-card.status-sinal .event-subtitle {
+  color: #f57c00;
+}
+
+/* Ainda não Pago / Pendente (Vermelho) */
+.event-card.status-pendente {
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-left: 5px solid #d32f2f;
+  color: #c62828;
+}
+.event-card.status-pendente .event-title {
+  color: #c62828;
+}
+.event-card.status-pendente .event-subtitle {
+  color: #d32f2f;
+}
+
+/* Manutenção (Cinza Slate/Escuro) */
+.event-card.status-maintenance {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-left: 5px solid #475569;
+  color: #334155;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(226, 232, 240, 0.4),
+    rgba(226, 232, 240, 0.4) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+.event-card.status-maintenance .event-title {
+  color: #1e293b;
+}
+.event-card.status-maintenance .event-subtitle {
+  color: #475569;
+}
+
+/* Status Pill Inside Cards */
+.event-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: auto;
+  width: fit-content;
+  box-sizing: border-box;
+}
+
+.status-pill.badge-pago {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.status-pill.badge-sinal {
+  background-color: #fff9c4;
+  color: #e65100;
+}
+
+.status-pill.badge-pendente {
+  background-color: #ffcdd2;
+  color: #b71c1c;
+}
+
+.status-pill.badge-maintenance {
+  background-color: #cbd5e1;
+  color: #334155;
+}
+
+.schedule-shell .month-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-shell .month-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f8f9fa;
+  border-bottom: 2px solid #e8eaed;
+}
+
+.schedule-shell .month-header-cell {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  padding: 12px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.schedule-shell .month-grid-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(110px, 1fr);
+}
+
+.schedule-shell .month-cell {
+  border-right: 1px solid #f0f1f3;
+  border-bottom: 1px solid #f0f1f3;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.schedule-shell .month-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.schedule-shell .month-cell:hover {
+  background-color: #f8f9fa;
+}
+
+.schedule-shell .month-cell.other-month {
+  opacity: 0.45;
+  background-color: #fafbfc;
+}
+
+.schedule-shell .month-cell.today {
+  background-color: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+}
+
+.schedule-shell .month-cell-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.schedule-shell .month-cell-day-num {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.schedule-shell .month-cell.today .month-cell-day-num {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.schedule-shell .month-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex-grow: 1;
+  max-height: 80px;
+}
+
+.schedule-shell .month-event-item {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.schedule-shell .month-event-item.status-pago {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-left-color: #2e7d32;
+}
+
+.schedule-shell .month-event-item.status-sinal {
+  background: #fffde7;
+  color: #e65100;
+  border-left-color: #fbc02d;
+}
+
+.schedule-shell .month-event-item.status-pendente {
+  background: #ffebee;
+  color: #c62828;
+  border-left-color: #d32f2f;
+}
+
+.schedule-shell .month-event-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+.schedule-shell .single-day-view {
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ─── Court Selector Bar ────────────────────────────── */
+.schedule-shell .court-selector-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  background-color: #ffffff;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid #e8eaed;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.schedule-shell .court-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schedule-shell .court-tab {
+  background: transparent;
+  border: 1px solid #e8eaed;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .court-tab:hover {
+  background-color: #f8f9fa;
+  color: var(--primary);
+  border-color: #cbd5e1;
+}
+
+.schedule-shell .court-tab.active {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px rgba(30, 70, 32, 0.15);
+}
+
+.schedule-shell .btn-add-court {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1.5px dashed var(--accent-green);
+  color: var(--primary);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-shell .btn-add-court:hover {
+  background-color: var(--light-green);
+  border-color: var(--primary);
+}
+
+/* ─── Busy / Reserved Slot Cell ────────────────────── */
+.schedule-shell .grid-slot-cell.busy-slot {
+  background: repeating-linear-gradient(
+    -45deg,
+    #fafafa,
+    #fafafa 5px,
+    #f1f3f5 5px,
+    #f1f3f5 10px
+  ) !important;
+  cursor: not-allowed;
+  pointer-events: none;
+  border: 1px solid #e2e8f0;
+}
+
+.schedule-shell .cell-busy-label {
+  font-size: 10px;
+  color: #94a3b8;
+  opacity: 0.8;
+  user-select: none;
+}
+
+/* ─── Maintenance Mode Specific Styles ──────────────── */
+.schedule-shell .header-checkboxes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background-color: #f8f9fa;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #e8eaed;
+  margin-bottom: 12px;
+}
+
+.schedule-shell .maintenance-notice {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 4px 0;
+  box-sizing: border-box;
+}
+
+.schedule-shell .notice-text {
+  font-size: 13px;
+  color: #856404;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.schedule-shell .disabled-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Short Card (1 Hour Event) Layout Overrides ────── */
+.schedule-shell .event-card.short-card {
+  padding: 6px 10px;
+}
+
+.schedule-shell .event-card.short-card .event-card-content {
+  justify-content: flex-start;
+  gap: 2px;
+}
+
+.schedule-shell .event-card.short-card .event-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.schedule-shell .event-card.short-card .event-subtitle {
+  font-size: 10px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.schedule-shell .event-card.short-card .status-pill {
+  display: none; /* Hide status pill on 1-hour cards to fit title, time, and court */
+}
+
+/* Short card maintenance layout */
+.schedule-shell .event-card.short-card .maintenance-badge {
+  padding: 4px 8px;
+  gap: 4px;
+}
+
+.schedule-shell .event-card.short-card .maintenance-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.schedule-shell .event-card.short-card .maintenance-badge span {
+  font-size: 10px;
 }
