@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Home, PlayCircle, Calendar, Settings, Search, Bell, HelpCircle,
   CalendarCheck, Video, Plus, ArrowRight, Clock,
-  ChevronLeft, ChevronRight, LogOut, BarChart3, CloudSun, MapPin
+  ChevronLeft, ChevronRight, LogOut, BarChart3, CloudSun, MapPin, Users
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { id: 'home', label: 'Página Inicial', icon: Home },
   { id: 'replays', label: 'Replays', icon: PlayCircle },
   { id: 'agenda', label: 'Agenda da Arena', icon: Calendar },
+  { id: 'times', label: 'Times', icon: Users },
 ];
 
 const SCHEDULE = {

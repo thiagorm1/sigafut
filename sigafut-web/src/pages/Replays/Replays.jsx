@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Home, PlayCircle, Calendar, Settings, Bell, HelpCircle,
   Search, SlidersHorizontal, LogOut, Download, Share2,
-  Calendar as CalendarIcon, Clock, ChevronDown
+  Calendar as CalendarIcon, Clock, ChevronDown, Users
 } from 'lucide-react';
 import './Replays.css';
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Página Inicial', icon: Home },
   { id: 'replays', label: 'Replays', icon: PlayCircle },
   { id: 'agenda', label: 'Agenda da Arena', icon: Calendar },
+  { id: 'times', label: 'Times', icon: Users },
 ];
 
 const REPLAYS_DATA = [
@@ -110,11 +111,17 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
 
         <div className="user-profile">
           <div className="user-avatar">
-            {user?.nome?.charAt(0)?.toUpperCase() || 'A'}
+            {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="user-info">
-            <span className="user-name">Admin Arena</span>
-            <span className="user-role">Premium Account</span>
+            <span className="user-name">{user?.nome || 'Usuário'}</span>
+            <span className="user-role">
+              {user?.role === 'admin'
+                ? 'Admin Principal'
+                : user?.role === 'operador'
+                  ? 'Operador'
+                  : 'Cliente'}
+            </span>
           </div>
           <button className="logout-btn" onClick={onLogout} title="Sair">
             <LogOut size={16} />
