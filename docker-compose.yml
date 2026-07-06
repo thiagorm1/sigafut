@@ -9,7 +9,7 @@ services:
       MYSQL_USER: sigafut_user
       MYSQL_PASSWORD: sigafut_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./init-db:/docker-entrypoint-initdb.d

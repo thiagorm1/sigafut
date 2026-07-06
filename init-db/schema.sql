@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS teams (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Inserir times padrão para popular o banco de dados
+INSERT INTO teams (id, name) VALUES 
+(1, 'Inter Amigos'),
+(2, 'FC Boleiros'),
+(3, 'Real Suado'),
+(4, 'União Churrasco')
+ON DUPLICATE KEY UPDATE name=name;
+
 CREATE TABLE IF NOT EXISTS players (
     id INT AUTO_INCREMENT PRIMARY KEY,
     team_id INT,
