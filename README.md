@@ -98,6 +98,22 @@ docker compose down
 docker compose down -v
 ```
 
+### Executar Análises de Vídeo (Módulo IA / Sports)
+
+Para processar vídeos locais (como os baixados na pasta `data`) com os modelos de IA, utilize os scripts do módulo `sports`. 
+Supondo que você possua um vídeo em `sports/examples/soccer/data/video.mp4`:
+
+```bash
+# Entre na pasta do motor esportivo
+cd sports/examples/soccer
+
+# Execute o processamento (Exemplo: modo RADAR)
+python main.py --source_video_path data/video.mp4 \
+  --target_video_path data/video-radar.mp4 \
+  --device cpu --mode RADAR
+```
+> Modos disponíveis: `PITCH_DETECTION`, `PLAYER_DETECTION`, `BALL_DETECTION`, `PLAYER_TRACKING`, `TEAM_CLASSIFICATION`, `RADAR`.
+
 ---
 
 ## 🗄️ Banco de Dados
