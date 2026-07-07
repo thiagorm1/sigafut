@@ -112,7 +112,7 @@ python main.py --source_video_path data/video.mp4 \
   --target_video_path data/video-radar.mp4 \
   --device cpu --mode RADAR
 ```
-> Modos disponíveis: `PITCH_DETECTION`, `PLAYER_DETECTION`, `BALL_DETECTION`, `PLAYER_TRACKING`, `TEAM_CLASSIFICATION`, `RADAR`.
+> Modos disponíveis: `PITCH_DETECTION`, `PLAYER_DETECTION`, `BALL_DETECTION`, `PLAYER_TRACKING`, `TEAM_CLASSIFICATION`, `RADAR`, `GOAL_DETECTION`.
 
 ---
 
