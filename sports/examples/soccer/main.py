@@ -17,14 +17,20 @@ from sports.common.view import ViewTransformer
 from sports.configs.soccer import SoccerPitchConfiguration
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PLAYER_DETECTION_MODEL_PATH = os.path.join(PARENT_DIR, 'data/football-player-detection.pt')
+PLAYER_DETECTION_MODEL_PATH = os.path.join(PARENT_DIR, 'data/fut7_model.pt')
 PITCH_DETECTION_MODEL_PATH = os.path.join(PARENT_DIR, 'data/football-pitch-detection.pt')
 BALL_DETECTION_MODEL_PATH = os.path.join(PARENT_DIR, 'data/football-ball-detection.pt')
 
+# Class IDs must match the order in data/fut7_dataset/data.yaml:
+# 0: ball  1: goalkeeper  2: goalpost  3: player  4: referee
 BALL_CLASS_ID = 0
 GOALKEEPER_CLASS_ID = 1
-PLAYER_CLASS_ID = 2
-REFEREE_CLASS_ID = 3
+GOALPOST_CLASS_ID = 2
+PLAYER_CLASS_ID = 3
+REFEREE_CLASS_ID = 4
+
+# COLORS has 4 slots (0-3); referees use slot 3 as their colour sentinel
+REFEREE_COLOR_IDX = 3
 
 STRIDE = 60
 CONFIG = SoccerPitchConfiguration()
@@ -252,7 +258,7 @@ def run_ball_detection(source_video_path: str, device: str) -> Iterator[np.ndarr
     ball_annotator = BallAnnotator(radius=6, buffer_size=10)
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
-        result = ball_detection_model(image_slice, imgsz=640, verbose=False)[0]
+        result = ball_detection_model(image_slice, imgsz=640, conf=0.15, verbose=False)[0]
         return sv.Detections.from_ultralytics(result)
 
     slicer = sv.InferenceSlicer(
@@ -342,7 +348,7 @@ def run_team_classification(source_video_path: str, device: str) -> Iterator[np.
         color_lookup = np.array(
                 players_team_id.tolist() +
                 goalkeepers_team_id.tolist() +
-                [REFEREE_CLASS_ID] * len(referees)
+                [REFEREE_COLOR_IDX] * len(referees)
         )
         labels = [str(tracker_id) for tracker_id in detections.tracker_id]
 
@@ -426,6 +432,51 @@ def compute_goal_zones_from_keypoints(
     return left_goal_camera, right_goal_camera
 
 
+def build_goal_zones_from_goalposts(
+    goalposts: sv.Detections,
+    frame_width: int,
+    zone_depth: int = 60,
+) -> Tuple[Optional[Tuple[int, int, int, int]], Optional[Tuple[int, int, int, int]]]:
+    """
+    Build (left_zone, right_zone) bounding-box tuples (x1,y1,x2,y2) in camera
+    pixel space from detected goalpost bounding boxes.
+
+    Goalposts whose centre-x is in the LEFT half of the frame belong to the
+    left goal; those in the RIGHT half belong to the right goal.
+
+    Each zone extends `zone_depth` pixels inward from the goal line so the ball
+    is considered "in the net" when its centre enters that strip.
+    Returns None for a side when no posts are visible on that side.
+    """
+    if len(goalposts) == 0:
+        return None, None
+
+    bboxes = goalposts.xyxy                                    # (N, 4)
+    cx = (bboxes[:, 0] + bboxes[:, 2]) / 2
+    half = frame_width / 2
+
+    left_mask  = cx <  half
+    right_mask = cx >= half
+
+    def _zone(boxes: np.ndarray, side: str) -> Tuple[int, int, int, int]:
+        y1 = int(boxes[:, 1].min())
+        y2 = int(boxes[:, 3].max())
+        if side == 'left':
+            # goal line ≈ right edge of the left-side posts
+            goal_line_x = int(boxes[:, 2].max())
+            return (max(0, goal_line_x - zone_depth), y1,
+                    goal_line_x + zone_depth,          y2)
+        else:
+            # goal line ≈ left edge of the right-side posts
+            goal_line_x = int(boxes[:, 0].min())
+            return (goal_line_x - zone_depth,            y1,
+                    goal_line_x + zone_depth,            y2)
+
+    left_zone  = _zone(bboxes[left_mask],  'left')  if left_mask.sum()  > 0 else None
+    right_zone = _zone(bboxes[right_mask], 'right') if right_mask.sum() > 0 else None
+    return left_zone, right_zone
+
+
 def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
     # ==========================================
     # 1. INICIALIZAÇÃO DE MODELOS
@@ -439,7 +490,7 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
     ball_annotator = BallAnnotator(radius=6, buffer_size=10)
 
     def ball_slicer_callback(image_slice: np.ndarray) -> sv.Detections:
-        result = ball_detection_model(image_slice, imgsz=640, verbose=False)[0]
+        result = ball_detection_model(image_slice, imgsz=640, conf=0.15, verbose=False)[0]
         return sv.Detections.from_ultralytics(result)
 
     ball_slicer = sv.InferenceSlicer(
@@ -488,8 +539,23 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
     frames_past_right = 0
     GOAL_CONFIRM_FRAMES = 2
 
+    # ---- Goalpost-zone goal detection ----
+    # Camera-space bounding boxes (x1,y1,x2,y2) derived from detected posts.
+    # Cached so they persist when posts blink out for a frame.
+    cached_left_zone:  Optional[Tuple[int, int, int, int]] = None
+    cached_right_zone: Optional[Tuple[int, int, int, int]] = None
+    # Consecutive frames the ball has been inside each goal zone
+    gp_frames_in_left  = 0
+    gp_frames_in_right = 0
+    GP_GOAL_CONFIRM_FRAMES = 3   # ball must dwell for 3 frames → avoids false triggers
+
     # Flash effect counter (frames remaining to show goal flash)
     goal_flash_frames = 0
+
+    # Pass tracking state variables
+    last_possessor_id = None
+    last_possessor_team = None
+    team_passes = {0: 0, 1: 0}
 
     # Initialize SQLite database once
     db_path = os.path.join(PARENT_DIR, 'futcheck_local.db')
@@ -609,13 +675,115 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
             goalkeepers_team_id = resolve_goalkeepers_team_id(
                 players, players_team_id, goalkeepers)
 
-            referees = detections[detections.class_id == REFEREE_CLASS_ID]
+            # --- F. PASS TRACKING LOGIC ---
+            if len(ball_detections) > 0:
+                ball_cam_xy = ball_detections.get_anchors_coordinates(sv.Position.CENTER)
+                bx_cam = float(ball_cam_xy[0, 0])
+                by_cam = float(ball_cam_xy[0, 1])
+
+                possessors = []
+                if len(players) > 0:
+                    player_coords = players.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+                    for i in range(len(players)):
+                        p_id = int(players.tracker_id[i]) if players.tracker_id is not None and i < len(players.tracker_id) and players.tracker_id[i] is not None else None
+                        p_team = int(players_team_id[i])
+                        possessors.append((player_coords[i], p_id, p_team))
+                if len(goalkeepers) > 0:
+                    gk_coords = goalkeepers.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+                    for i in range(len(goalkeepers)):
+                        p_id = int(goalkeepers.tracker_id[i]) if goalkeepers.tracker_id is not None and i < len(goalkeepers.tracker_id) and goalkeepers.tracker_id[i] is not None else None
+                        p_team = int(goalkeepers_team_id[i])
+                        possessors.append((gk_coords[i], p_id, p_team))
+
+                if possessors:
+                    distances = [np.linalg.norm(pos_coords - np.array([bx_cam, by_cam])) for pos_coords, _, _ in possessors]
+                    best_idx = int(np.argmin(distances))
+                    min_dist = distances[best_idx]
+
+                    # 80 pixels is a good proximity threshold for ball-player contact
+                    if min_dist < 80:
+                        _, p_id, p_team = possessors[best_idx]
+                        if p_id is not None:
+                            if last_possessor_id is None:
+                                last_possessor_id = p_id
+                                last_possessor_team = p_team
+                            elif last_possessor_id != p_id:
+                                if last_possessor_team == p_team:
+                                    team_passes[p_team] += 1
+                                    cursor.execute(
+                                        "INSERT INTO match_logs (event_type) VALUES (?)",
+                                        (f"PASSE_T{p_team}",)
+                                    )
+                                    conn.commit()
+                                    print(f"⚽ PASSE COMPLETADO: Time {p_team} ({last_possessor_id} -> {p_id})! Total: {team_passes[p_team]}")
+                                last_possessor_id = p_id
+                                last_possessor_team = p_team
+
+            referees  = detections[detections.class_id == REFEREE_CLASS_ID]
+            goalposts  = detections[detections.class_id == GOALPOST_CLASS_ID]
+
+            # --- E. GOALPOST-ZONE GOAL DETECTION ---
+            frame_h, frame_w, _ = frame.shape
+
+            # Refresh cached goal zones whenever posts are visible
+            if len(goalposts) > 0:
+                lz, rz = build_goal_zones_from_goalposts(goalposts, frame_w)
+                if lz is not None:
+                    cached_left_zone  = lz
+                if rz is not None:
+                    cached_right_zone = rz
+
+            # Check ball against cached goal zones
+            if len(ball_detections) > 0:
+                ball_cam_xy = ball_detections.get_anchors_coordinates(
+                    sv.Position.CENTER)          # shape (N, 2)
+                bx_cam = float(ball_cam_xy[0, 0])
+                by_cam = float(ball_cam_xy[0, 1])
+
+                def _in_zone(zone) -> bool:
+                    if zone is None:
+                        return False
+                    zx1, zy1, zx2, zy2 = zone
+                    return zx1 <= bx_cam <= zx2 and zy1 <= by_cam <= zy2
+
+                if _in_zone(cached_left_zone):
+                    gp_frames_in_left += 1
+                else:
+                    gp_frames_in_left = 0
+
+                if _in_zone(cached_right_zone):
+                    gp_frames_in_right += 1
+                else:
+                    gp_frames_in_right = 0
+
+                gp_goal_confirmed = (
+                    gp_frames_in_left  >= GP_GOAL_CONFIRM_FRAMES
+                    or gp_frames_in_right >= GP_GOAL_CONFIRM_FRAMES
+                )
+
+                if gp_goal_confirmed and frames_since_last_goal > cooldown_frames:
+                    total_goals += 1
+                    goal_flash_frames = 30
+                    gp_frames_in_left  = 0
+                    gp_frames_in_right = 0
+                    print(
+                        f"\n\U0001f6a8 \u26bd GOLO CONFIRMADO (Traves)! "
+                        f"Total: {total_goals} \u26bd \U0001f6a8\n")
+                    cursor.execute(
+                        "INSERT INTO match_logs (event_type) "
+                        "VALUES ('GOLO')")
+                    conn.commit()
+                    frames_since_last_goal = 0
+            else:
+                # No ball visible — reset zone counters to avoid ghost goals
+                gp_frames_in_left  = 0
+                gp_frames_in_right = 0
 
             detections = sv.Detections.merge([players, goalkeepers, referees])
             color_lookup = np.array(
                 players_team_id.tolist()
                 + goalkeepers_team_id.tolist()
-                + [REFEREE_CLASS_ID] * len(referees)
+                + [REFEREE_COLOR_IDX] * len(referees)
             )
 
             labels = (
@@ -640,6 +808,12 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
                 annotated_frame, detections, labels,
                 custom_color_lookup=color_lookup)
 
+            # Draw goalposts (triangle marker — distinct from players)
+            if len(goalposts) > 0:
+                annotated_frame = TRIANGLE_ANNOTATOR.annotate(
+                    annotated_frame, goalposts)
+
+
             # Draw scoreboard (with flash on goal)
             h, w, _ = frame.shape
             score_color = (0, 255, 255) if goal_flash_frames > 0 else (0, 255, 0)
@@ -648,8 +822,15 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
                 score_text = f"GOL! GOLS: {total_goals}"
             cv2.putText(
                 annotated_frame, score_text,
-                (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2,
-                score_color, 4)
+                (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5,
+                score_color, 3)
+
+            # Draw passes stats (Rosa = Team 0, Azul = Team 1)
+            passes_text = f"PASSES - Rosa: {team_passes[0]} | Azul: {team_passes[1]}"
+            cv2.putText(
+                annotated_frame, passes_text,
+                (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                (255, 255, 255), 2)
 
             # Draw radar
             radar = render_radar(detections, keypoints, color_lookup)
@@ -669,7 +850,7 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
         conn.close()
 
 
-def run_goal_detection(source_video_path: str, target_video_path: str, device: str) -> Iterator[np.ndarray]:
+def run_goal_detection(source_video_path: str, target_video_path: str, device: str, codec: str = "avc1") -> Iterator[np.ndarray]:
     player_detection_model = YOLO(PLAYER_DETECTION_MODEL_PATH).to(device=device)
     ball_detection_model = YOLO(BALL_DETECTION_MODEL_PATH).to(device=device)
 
@@ -738,7 +919,7 @@ def run_goal_detection(source_video_path: str, target_video_path: str, device: s
                     # Initialize individual highlight video sink at start of clip
                     if current_frame == start and idx not in active_sinks:
                         highlight_path = target_video_path.replace('.mp4', f'_gol_{idx + 1}.mp4')
-                        sink = sv.VideoSink(highlight_path, video_info, codec="avc1")
+                        sink = sv.VideoSink(highlight_path, video_info, codec=codec)
                         sink.__enter__()
                         active_sinks[idx] = sink
                         
@@ -880,6 +1061,22 @@ def run_goal_detection(source_video_path: str, target_video_path: str, device: s
 
 
 def main(source_video_path: str, target_video_path: str, device: str, mode: Mode) -> None:
+    # Codec detection fallback to support out-of-the-box execution on machines without OpenH264
+    fourcc_test = cv2.VideoWriter_fourcc(*"avc1")
+    test_writer = cv2.VideoWriter("test_codec_temp.mp4", fourcc_test, 30, (100, 100))
+    codec_to_use = "avc1"
+    is_opened = test_writer.isOpened()
+    test_writer.release()
+    if not is_opened:
+        print("\n[WARNING] H.264 (avc1) codec failed to initialize (openh264 DLL may be missing).")
+        print("Falling back to mp4v codec. Note: Browsers may not play mp4v videos directly.\n")
+        codec_to_use = "mp4v"
+    try:
+        if os.path.exists("test_codec_temp.mp4"):
+            os.remove("test_codec_temp.mp4")
+    except Exception:
+        pass
+
     if mode == Mode.PITCH_DETECTION:
         frame_generator = run_pitch_detection(
             source_video_path=source_video_path, device=device)
@@ -902,13 +1099,14 @@ def main(source_video_path: str, target_video_path: str, device: str, mode: Mode
         frame_generator = run_goal_detection(
             source_video_path=source_video_path,
             target_video_path=target_video_path,
-            device=device
+            device=device,
+            codec=codec_to_use
         )
     else:
         raise NotImplementedError(f"Mode {mode} is not implemented.")
 
     video_info = sv.VideoInfo.from_video_path(source_video_path)
-    with sv.VideoSink(target_video_path, video_info, codec="avc1") as sink:
+    with sv.VideoSink(target_video_path, video_info, codec=codec_to_use) as sink:
         for frame in frame_generator:
             sink.write_frame(frame)
 
@@ -925,9 +1123,16 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default='cpu')
     parser.add_argument('--mode', type=Mode, default=Mode.PLAYER_DETECTION)
     args = parser.parse_args()
+
+    # Normalize device: '0', '1', etc. → 'cuda:0', 'cuda:1'
+    # so PyTorch .to(device=...) accepts it correctly.
+    device_arg = args.device
+    if device_arg.isdigit():
+        device_arg = f'cuda:{device_arg}'
+
     main(
         source_video_path=args.source_video_path,
         target_video_path=args.target_video_path,
-        device=args.device,
+        device=device_arg,
         mode=args.mode
     )

@@ -59,21 +59,21 @@ const REPLAYS_DATA = [
     id: 5,
     badge: 'Campo 02',
     thumb: '/images/replay_card_5.jpg',
-    time: '01:30:15',
-    title: 'Treino Tático - Squad Alpha',
-    date: '09 Jan 2024',
-    hour: '08:30',
-    videoUrl: null
+    time: '01:30',
+    title: 'Processamento Radar - fut7_test',
+    date: 'Hoje',
+    hour: '12:30',
+    videoUrl: '/highlights/output_test.mp4'
   },
   {
     id: 6,
     badge: 'Campo 01',
     thumb: '/images/replay_card_6.jpg',
-    time: '01:55:00',
-    title: 'Galáticos vs. Real Madrid (Loc...)',
-    date: '08 Jan 2024',
-    hour: '22:00',
-    videoUrl: null
+    time: '01:55',
+    title: 'Análise de Passes - Pass_test',
+    date: 'Hoje',
+    hour: '12:35',
+    videoUrl: '/highlights/output_pass.mp4'
   }
 ];
 

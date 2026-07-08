@@ -93,8 +93,10 @@ class BallTracker:
                 best_idx = int(np.argmin(distances))
                 new_pos = xy[best_idx]
                 
-                # If the closest detection deviates from pure physics by more than 50 pixels in a single frame, reject it as noise!
-                if distances[best_idx] <= 50:
+                # Use a stable search radius of 100 pixels to allow sudden kicks/bounces,
+                # but prevent snapping to distant background noise like white socks.
+                max_distance = 100
+                if distances[best_idx] <= max_distance:
                     index = best_idx
                     self.velocity = 0.8 * (new_pos - self.last_pos) + 0.2 * self.velocity
                     self.last_pos = new_pos
