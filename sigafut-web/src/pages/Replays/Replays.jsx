@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Home, PlayCircle, Calendar, Settings, Bell, HelpCircle,
   Search, SlidersHorizontal, LogOut, Download, Share2,
-  Calendar as CalendarIcon, Clock, ChevronDown, Users
+  Calendar as CalendarIcon, Clock, ChevronDown, X
 } from 'lucide-react';
 import './Replays.css';
 
@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Página Inicial', icon: Home },
   { id: 'replays', label: 'Replays', icon: PlayCircle },
   { id: 'agenda', label: 'Agenda da Arena', icon: Calendar },
-  { id: 'times', label: 'Times', icon: Users },
 ];
 
 const REPLAYS_DATA = [
@@ -20,55 +19,61 @@ const REPLAYS_DATA = [
     id: 1,
     badge: 'Campo 01',
     thumb: '/images/replay_card_1.jpg',
-    time: '01:45:20',
-    title: 'Inter Amigos vs. Real Matismo',
-    date: '12 Jan 2024',
+    time: '00:07',
+    title: 'Gol de Futebol - Lance 1',
+    date: 'Hoje',
     hour: '19:30',
+    videoUrl: '/highlights/match_1_gol_1.mp4',
   },
   {
     id: 2,
-    badge: 'Campo 03',
+    badge: 'Campo 01',
     thumb: '/images/replay_card_2.jpg',
-    time: '00:58:12',
-    title: 'FC Boleiros vs. Unidos do Co...',
-    date: '12 Jan 2024',
-    hour: '21:00',
+    time: '00:07',
+    title: 'Gol de Futebol - Lance 2',
+    date: 'Hoje',
+    hour: '19:35',
+    videoUrl: '/highlights/match_1_gol_2.mp4',
   },
   {
     id: 3,
-    badge: 'Campo 02',
+    badge: 'Campo 01',
     thumb: '/images/replay_card_3.jpg',
-    time: '01:15:45',
-    title: 'Veteranos A vs. Juventude B',
-    date: '11 Jan 2024',
-    hour: '18:00',
+    time: '00:07',
+    title: 'Gol de Futebol - Lance 3',
+    date: 'Hoje',
+    hour: '19:40',
+    videoUrl: '/highlights/match_1_gol_3.mp4',
   },
   {
     id: 4,
     badge: 'Campo 01',
     thumb: '/images/replay_card_4.jpg',
-    time: '02:10:00',
-    title: 'Liga Regional - Final',
-    date: '10 Jan 2024',
-    hour: '15:00',
+    time: '00:07',
+    title: 'Gol de Futebol - Lance 4',
+    date: 'Hoje',
+    hour: '19:45',
+    videoUrl: '/highlights/match_1_gol_4.mp4',
   },
   {
     id: 5,
     badge: 'Campo 02',
     thumb: '/images/replay_card_5.jpg',
-    time: '01:30:15',
-    title: 'Treino Tático - Squad Alpha',
-    date: '09 Jan 2024',
-    hour: '08:30',
+    time: '01:30',
+    title: 'Processamento Radar - fut7_test',
+    date: 'Hoje',
+    hour: '12:30',
+    videoUrl: '/highlights/output_test.mp4'
   },
   {
     id: 6,
     badge: 'Campo 01',
     thumb: '/images/replay_card_6.jpg',
-    time: '01:55:00',
-    title: 'Galáticos vs. Real Madrid (Loc...',
-    date: '08 Jan 2024',
-    hour: '22:00',
+    time: '01:55',
+    title: 'Análise de Passes - Pass_test',
+    date: 'Hoje',
+    hour: '12:35',
+    videoUrl: '/highlights/output_pass.mp4'
   }
 ];
 
@@ -111,17 +116,11 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
 
         <div className="user-profile">
           <div className="user-avatar">
-            {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+            {user?.nome?.charAt(0)?.toUpperCase() || 'A'}
           </div>
           <div className="user-info">
-            <span className="user-name">{user?.nome || 'Usuário'}</span>
-            <span className="user-role">
-              {user?.role === 'admin'
-                ? 'Admin Principal'
-                : user?.role === 'operador'
-                  ? 'Operador'
-                  : 'Cliente'}
-            </span>
+            <span className="user-name">Admin Arena</span>
+            <span className="user-role">Premium Account</span>
           </div>
           <button className="logout-btn" onClick={onLogout} title="Sair">
             <LogOut size={16} />
@@ -135,6 +134,16 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
 // ───── Main Component ──────────────────────────────────────
 
 export default function Replays({ user, onNavigate, onLogout }) {
+  const [activeVideo, setActiveVideo] = useState(null);
+
+  const handleWatch = (item) => {
+    if (item.videoUrl) {
+      setActiveVideo(item);
+    } else {
+      alert("Vídeo ainda não processado ou indisponível.");
+    }
+  };
+
   return (
     <div className="replays-shell">
       <Sidebar
@@ -208,18 +217,24 @@ export default function Replays({ user, onNavigate, onLogout }) {
           {REPLAYS_DATA.map((item) => (
             <div key={item.id} className="gallery-card">
               {/* Top (Thumbnail) */}
-              <div className="card-thumb-wrap">
+              <div 
+                className="card-thumb-wrap"
+                onClick={() => handleWatch(item)}
+                style={{ cursor: item.videoUrl ? 'pointer' : 'default' }}
+              >
                 <span className="card-badge">{item.badge}</span>
                 <img src={item.thumb} alt={item.title} />
                 <span className="card-time">{item.time}</span>
                 
-                <div className="play-overlay">
-                  <div className="play-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                {item.videoUrl && (
+                  <div className="play-overlay">
+                    <div className="play-btn">
+                      <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" fill="currentColor" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Middle (Metadata) */}
@@ -239,19 +254,56 @@ export default function Replays({ user, onNavigate, onLogout }) {
 
               {/* Bottom (Actions) */}
               <div className="card-actions">
-                <button className="btn-watch">Assistir</button>
-                <button className="btn-icon">
-                  <Download size={18} />
+                <button 
+                  className="btn-watch" 
+                  onClick={() => handleWatch(item)}
+                >
+                  Assistir
                 </button>
-                <button className="btn-icon">
+                {item.videoUrl ? (
+                  <a 
+                    href={item.videoUrl} 
+                    download={`replay_${item.id}.mp4`} 
+                    className="btn-icon" 
+                    title="Baixar Replay"
+                  >
+                    <Download size={18} />
+                  </a>
+                ) : (
+                  <button className="btn-icon" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                    <Download size={18} />
+                  </button>
+                )}
+                <button className="btn-icon" onClick={() => item.videoUrl && navigator.clipboard.writeText(window.location.origin + item.videoUrl).then(() => alert('Link copiado!'))}>
                   <Share2 size={18} />
                 </button>
               </div>
             </div>
           ))}
         </div>
-
       </main>
+
+      {/* Video Player Modal */}
+      {activeVideo && (
+        <div className="video-modal-overlay" onClick={() => setActiveVideo(null)}>
+          <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="video-modal-header">
+              <h2 className="video-modal-title">{activeVideo.title}</h2>
+              <button className="video-modal-close" onClick={() => setActiveVideo(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="video-modal-body">
+              <video 
+                className="video-modal-player" 
+                controls 
+                autoPlay 
+                src={activeVideo.videoUrl}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

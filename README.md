@@ -30,6 +30,22 @@ O SIGAFUT processa feeds de câmeras RTSP usando YOLO/OpenCV para detectar autom
 
 ---
 
+## 🔄 Novo Fluxo e Funcionalidades Recentes
+
+Com as atualizações mais recentes, o fluxo do SigaFut foi expandido para suportar uma gestão mais completa e com inteligência artificial avançada:
+
+1. **Inteligência Artificial (Módulo Sports)**
+   - O repositório agora integra a nova engine `sports` de visão computacional, executada em conjunto com o `sigafut-engine`.
+   - Há uma pipeline de inferência aprimorada que detecta eventos e extrai métricas detalhadas via OpenCV e YOLO.
+2. **Nova Interface e Dashboard Web (React/Vite)**
+   - **Gestão de Quadras e Horários**: Calendário dinâmico com navegação de quadras, definição de slots visíveis e bloqueio de manutenção.
+   - **Gerenciamento de Times**: Seção dedicada à administração de times com layouts customizáveis (grade e lista).
+   - **Performance e Persistência**: Implementação de *localStorage* para garantir resposta imediata e persistência dos dados de reservas, times e configurações do centro esportivo.
+   - **Replays em Português BR**: A área de *highlights* e replays dos eventos foi reformulada e totalmente localizada para Português, simplificando a visualização de gols e assistências após as partidas.
+   - **Navegação Inteligente**: Menu lateral (Sidebar) atualizado, incluindo detalhes rápidos do perfil do usuário e atalhos de gestão.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Serviço | Tecnologias | Porta |
@@ -81,6 +97,22 @@ docker compose down
 ```bash
 docker compose down -v
 ```
+
+### Executar Análises de Vídeo (Módulo IA / Sports)
+
+Para processar vídeos locais (como os baixados na pasta `data`) com os modelos de IA, utilize os scripts do módulo `sports`. 
+Supondo que você possua um vídeo em `sports/examples/soccer/data/video.mp4`:
+
+```bash
+# Entre na pasta do motor esportivo
+cd sports/examples/soccer
+
+# Execute o processamento (Exemplo: modo RADAR)
+python main.py --source_video_path data/video.mp4 \
+  --target_video_path data/video-radar.mp4 \
+  --device cpu --mode RADAR
+```
+> Modos disponíveis: `PITCH_DETECTION`, `PLAYER_DETECTION`, `BALL_DETECTION`, `PLAYER_TRACKING`, `TEAM_CLASSIFICATION`, `RADAR`, `GOAL_DETECTION`.
 
 ---
 
@@ -155,6 +187,7 @@ SIGAFUT/
         ├── index.css         # Estilos globais
         └── pages/
             └── Login/        # Página de login
+├── sports/                   # Motor de IA para esportes
 ```
 
 ---
