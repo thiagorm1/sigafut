@@ -1,4 +1,4 @@
-# ⚽ SIGAFUT — Sistema de Gerenciamento de Arenas de Futsal
+# ⚽ SIGAFUT — Sistema de Gerenciamento de Arenas de Futebol
 
 Sistema de gerenciamento de arenas de futsal com detecção de eventos em tempo real via visão computacional.
 
