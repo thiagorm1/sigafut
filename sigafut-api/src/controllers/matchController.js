@@ -89,7 +89,62 @@ const getMatchStats = async (req, res) => {
     }
 };
 
+// POST /api/matches/:matchId/events
+const createMatchEvent = async (req, res) => {
+    try {
+        const { matchId } = req.params;
+        const { type, player_id, timestamp_match, video_highlight_url } = req.body;
+
+        const validTypes = ['goal', 'assist', 'save', 'yellow_card', 'red_card', 'pass'];
+        if (!type || !validTypes.includes(type)) {
+            return res.status(400).json({ error: `Tipo de evento inválido. Tipos permitidos: ${validTypes.join(', ')}` });
+        }
+
+        // Ensure Match exists
+        await Match.findOrCreate({
+            where: { id: matchId },
+            defaults: {
+                home_team_id: 1, // Default Teams from schema.sql
+                away_team_id: 2,
+                scheduled_at: new Date(),
+                status: 'live'
+            }
+        });
+
+        // Ensure Player exists (if a positive ID is supplied)
+        let playerId = player_id;
+        if (playerId && playerId > 0) {
+            await Player.findOrCreate({
+                where: { id: playerId },
+                defaults: {
+                    name: `Jogador ${playerId}`,
+                    team_id: 1,
+                    number: playerId,
+                    position: 'Desconhecido'
+                }
+            });
+        } else {
+            playerId = null;
+        }
+
+        // Save event
+        const event = await Event.create({
+            match_id: matchId,
+            player_id: playerId,
+            type,
+            timestamp_match: timestamp_match || '00:00:00',
+            video_highlight_url: video_highlight_url || null
+        });
+
+        return res.status(201).json(event);
+    } catch (err) {
+        console.error('Error creating match event:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor ao salvar o evento.' });
+    }
+};
+
 module.exports = {
     getMatchEvents,
-    getMatchStats
+    getMatchStats,
+    createMatchEvent
 };

@@ -1,5 +1,6 @@
 import argparse
 import sqlite3
+import requests
 from enum import Enum
 from typing import Iterator, List, Optional, Tuple
 
@@ -15,6 +16,21 @@ from sports.common.ball import BallTracker, BallAnnotator
 from sports.common.team import TeamClassifier
 from sports.common.view import ViewTransformer
 from sports.configs.soccer import SoccerPitchConfiguration
+
+def send_event_to_api(match_id: int, event_type: str, player_id: Optional[int] = None, timestamp_match: str = "00:00:00") -> None:
+    url = f"http://localhost:3000/api/matches/{match_id}/events"
+    payload = {
+        "type": event_type,
+        "player_id": player_id,
+        "timestamp_match": timestamp_match
+    }
+    try:
+        response = requests.post(url, json=payload, timeout=1.0)
+        if response.status_code == 201:
+            print(f"  [API] Event '{event_type}' successfully persisted for Match {match_id}")
+    except Exception as e:
+        print(f"  [API Warning] Could not connect to API to save event: {e}")
+
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PLAYER_DETECTION_MODEL_PATH = os.path.join(PARENT_DIR, 'data/fut7_model.pt')
@@ -477,7 +493,7 @@ def build_goal_zones_from_goalposts(
     return left_zone, right_zone
 
 
-def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
+def run_radar(source_video_path: str, device: str, match_id: int = 1) -> Iterator[np.ndarray]:
     # ==========================================
     # 1. INICIALIZAÇÃO DE MODELOS
     # ==========================================
@@ -569,11 +585,16 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
     )
     conn.commit()
 
+    video_info = sv.VideoInfo.from_video_path(source_video_path)
+    fps = video_info.fps if video_info.fps > 0 else 30.0
+    current_frame = 0
+
     # ==========================================
     # 4. CICLO DE FOTOGRAMAS
     # ==========================================
     try:
         for frame in frame_generator:
+            current_frame += 1
             frames_since_last_goal += 1
             if goal_flash_frames > 0:
                 goal_flash_frames -= 1
@@ -653,6 +674,13 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
                                 "INSERT INTO match_logs (event_type) "
                                 "VALUES ('GOLO')")
                             conn.commit()
+                            
+                            # Send event to API
+                            minutes = int((current_frame / fps) // 60)
+                            seconds = int((current_frame / fps) % 60)
+                            time_str = f"{minutes:02d}:{seconds:02d}"
+                            send_event_to_api(match_id, "goal", timestamp_match=time_str)
+
                             frames_since_last_goal = 0
                     else:
                         # Bad transform — reset consecutive counters
@@ -716,6 +744,12 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
                                     )
                                     conn.commit()
                                     print(f"⚽ PASSE COMPLETADO: Time {p_team} ({last_possessor_id} -> {p_id})! Total: {team_passes[p_team]}")
+                                    
+                                    # Send event to API
+                                    minutes = int((current_frame / fps) // 60)
+                                    seconds = int((current_frame / fps) % 60)
+                                    time_str = f"{minutes:02d}:{seconds:02d}"
+                                    send_event_to_api(match_id, "pass", p_id, time_str)
                                 last_possessor_id = p_id
                                 last_possessor_team = p_team
 
@@ -773,6 +807,13 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
                         "INSERT INTO match_logs (event_type) "
                         "VALUES ('GOLO')")
                     conn.commit()
+                    
+                    # Send event to API
+                    minutes = int((current_frame / fps) // 60)
+                    seconds = int((current_frame / fps) % 60)
+                    time_str = f"{minutes:02d}:{seconds:02d}"
+                    send_event_to_api(match_id, "goal", timestamp_match=time_str)
+
                     frames_since_last_goal = 0
             else:
                 # No ball visible — reset zone counters to avoid ghost goals
@@ -850,7 +891,7 @@ def run_radar(source_video_path: str, device: str) -> Iterator[np.ndarray]:
         conn.close()
 
 
-def run_goal_detection(source_video_path: str, target_video_path: str, device: str, codec: str = "avc1") -> Iterator[np.ndarray]:
+def run_goal_detection(source_video_path: str, target_video_path: str, device: str, codec: str = "avc1", match_id: int = 1) -> Iterator[np.ndarray]:
     player_detection_model = YOLO(PLAYER_DETECTION_MODEL_PATH).to(device=device)
     ball_detection_model = YOLO(BALL_DETECTION_MODEL_PATH).to(device=device)
 
@@ -930,6 +971,12 @@ def run_goal_detection(source_video_path: str, target_video_path: str, device: s
                         print(f"\n[GOAL] GOL CONFIRMADO! Total: {total_goals}\n")
                         cursor.execute("INSERT INTO match_logs (event_type) VALUES ('GOL')")
                         conn.commit()
+                        
+                        # Send event to API
+                        minutes = int((current_frame / fps) // 60)
+                        seconds = int((current_frame / fps) % 60)
+                        time_str = f"{minutes:02d}:{seconds:02d}"
+                        send_event_to_api(match_id, "goal", timestamp_match=time_str)
                     break
             
             if not in_clip:
@@ -1060,7 +1107,7 @@ def run_goal_detection(source_video_path: str, target_video_path: str, device: s
         conn.close()
 
 
-def main(source_video_path: str, target_video_path: str, device: str, mode: Mode) -> None:
+def main(source_video_path: str, target_video_path: str, device: str, mode: Mode, match_id: int = 1) -> None:
     # Codec detection fallback to support out-of-the-box execution on machines without OpenH264
     fourcc_test = cv2.VideoWriter_fourcc(*"avc1")
     test_writer = cv2.VideoWriter("test_codec_temp.mp4", fourcc_test, 30, (100, 100))
@@ -1094,13 +1141,14 @@ def main(source_video_path: str, target_video_path: str, device: str, mode: Mode
             source_video_path=source_video_path, device=device)
     elif mode == Mode.RADAR:
         frame_generator = run_radar(
-            source_video_path=source_video_path, device=device)
+            source_video_path=source_video_path, device=device, match_id=match_id)
     elif mode == Mode.GOAL_DETECTION:
         frame_generator = run_goal_detection(
             source_video_path=source_video_path,
             target_video_path=target_video_path,
             device=device,
-            codec=codec_to_use
+            codec=codec_to_use,
+            match_id=match_id
         )
     else:
         raise NotImplementedError(f"Mode {mode} is not implemented.")
@@ -1122,6 +1170,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_video_path', type=str, required=True)
     parser.add_argument('--device', type=str, default='cpu')
     parser.add_argument('--mode', type=Mode, default=Mode.PLAYER_DETECTION)
+    parser.add_argument('--match_id', type=int, default=1)
     args = parser.parse_args()
 
     # Normalize device: '0', '1', etc. → 'cuda:0', 'cuda:1'
@@ -1134,5 +1183,6 @@ if __name__ == '__main__':
         source_video_path=args.source_video_path,
         target_video_path=args.target_video_path,
         device=device_arg,
-        mode=args.mode
+        mode=args.mode,
+        match_id=args.match_id
     )
