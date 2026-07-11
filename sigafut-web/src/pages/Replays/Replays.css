@@ -704,3 +704,222 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ─── Confrontation Stats Modal ───────────────────────── */
+.stats-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.stats-modal-content {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  width: 90%;
+  max-width: 500px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-modal-header {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.stats-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.stats-modal-close {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.stats-modal-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stats-modal-body {
+  padding: 24px;
+  background: #1f2937;
+  color: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Scoreboard */
+.stats-scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111827;
+  padding: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.scoreboard-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.team-shield {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.corinthians-shield {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+.sharks-shield {
+  background: #0284c7;
+  color: #ffffff;
+  border: 2px solid #38bdf8;
+}
+
+.team-name {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.scoreboard-score-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.scoreboard-score {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: monospace;
+  color: #ffffff;
+}
+
+.scoreboard-divider {
+  font-size: 20px;
+  color: #4b5563;
+}
+
+.scoreboard-match-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: -12px;
+}
+
+/* Stats Comparison Rows */
+.stats-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.stat-val-left {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.stat-val-right {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.stat-name {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.stat-bar-container {
+  display: flex;
+  height: 8px;
+  background: #374151;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease-out;
+}
+
+.stat-bar-fill.left {
+  background: #ffffff; /* Corinthians (White) */
+  border-right: 1px solid #111827;
+}
+
+.stat-bar-fill.right {
+  background: #0284c7; /* Sharks de Floripa (Blue) */
+  margin-left: auto;
+}
+
+/* Support video as preview in gallery cards */
+.card-thumb-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.gallery-card:hover .card-thumb-wrap video {
+  transform: scale(1.05);
+}
