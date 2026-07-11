@@ -9,6 +9,29 @@ import Times from './pages/Times/Times';
 function App() {
   const [currentPage, setCurrentPage] = useState('login'); // 'login' | 'register' | 'dashboard' | 'replays' | 'agenda' | 'times'
   const [user, setUser] = useState(null);
+  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 6, 7));
+  const [replays, setReplays] = useState([
+    {
+      id: 7,
+      badge: 'Campo Principal',
+      thumb: null,
+      time: '01:50',
+      title: 'Corinthians x Sharks de Floripa',
+      date: 'Hoje',
+      hour: '20:00',
+      videoUrl: '/highlights/Fut7_test.mp4',
+      stats: {
+        homeTeam: 'Corinthians',
+        awayTeam: 'Sharks de Floripa',
+        homeScore: 1,
+        awayScore: 0,
+        homePasses: 11,
+        awayPasses: 8
+      }
+    }
+  ]);
+
+  const [selectedReplay, setSelectedReplay] = useState(null);
 
   // Lifted reservations state with localStorage persistence (starts empty as requested)
   const [reservations, setReservations] = useState(() => {
@@ -94,6 +117,14 @@ function App() {
           setUser(null);
           setCurrentPage('login');
         }} 
+        reservations={reservations}
+        currentDate={currentDate}
+        replays={replays}
+        onWatchReplay={(replay) => {
+          setSelectedReplay(replay);
+          setCurrentPage('replays');
+        }}
+        teams={teams}
       />
     );
   }
@@ -107,6 +138,9 @@ function App() {
           setUser(null);
           setCurrentPage('login');
         }} 
+        replays={replays}
+        initialReplay={selectedReplay}
+        onClearInitialReplay={() => setSelectedReplay(null)}
       />
     );
   }
@@ -126,6 +160,8 @@ function App() {
         setCourts={setCourts}
         teams={teams}
         setTeams={setTeams}
+        currentDate={currentDate}
+        setCurrentDate={setCurrentDate}
       />
     );
   }
