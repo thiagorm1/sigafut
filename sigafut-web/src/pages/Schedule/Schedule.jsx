@@ -96,7 +96,7 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
             <span className="user-name">{user?.nome || 'Usuário'}</span>
             <span className="user-role">
               {user?.role === 'admin'
-                ? 'Admin'
+                ? 'Admin Principal'
                 : user?.role === 'operador'
                   ? 'Operador'
                   : 'Cliente'}
@@ -129,16 +129,15 @@ export default function Schedule({
   courts,
   setCourts,
   teams,
-  setTeams
+  setTeams,
+  currentDate,
+  setCurrentDate
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null); // reservation object being edited
 
   // View States: 'semana' (default), 'dia', 'mes'
   const [activeView, setActiveView] = useState('semana');
-  
-  // Reference Calendar Date (Locked to today's local year/month/day at start: July 7th, 2026)
-  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 6, 7));
 
   // Active Court Navigation State
   const [activeCourt, setActiveCourt] = useState(() => {
