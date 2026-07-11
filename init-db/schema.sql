@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS events (
     id INT AUTO_INCREMENT PRIMARY KEY,
     match_id INT,
     player_id INT,
-    type ENUM('goal', 'assist', 'save', 'yellow_card', 'red_card') NOT NULL,
+    type ENUM('goal', 'assist', 'save', 'yellow_card', 'red_card', 'pass') NOT NULL,
     timestamp_match VARCHAR(50), -- Time relative to match start, e.g., "00:15:30"
     video_highlight_url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

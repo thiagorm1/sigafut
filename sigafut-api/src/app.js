@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const redis = require('redis');
+const { Match, Player, Event } = require('./models');
 
 const app = express();
 const server = http.createServer(app);
@@ -25,6 +26,10 @@ app.use('/api/auth', authRoutes);
 const teamRoutes = require('./routes/teamRoutes');
 app.use('/api/teams', teamRoutes);
 
+// Match routes
+const matchRoutes = require('./routes/matchRoutes');
+app.use('/api/matches', matchRoutes);
+
 // Redis setup
 const redisClient = redis.createClient({
     url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`
@@ -39,11 +44,59 @@ redisClient.on('error', (err) => console.log('Redis Client Error', err));
     // Subscribe to match events from Python service
     const subscriber = redisClient.duplicate();
     await subscriber.connect();
-    await subscriber.subscribe('match:live_events', (message) => {
+    await subscriber.subscribe('match:live_events', async (message) => {
         console.log('Received event from Python:', message);
-        const eventData = JSON.parse(message);
-        // Forward to all connected socket clients
-        io.emit('new_event', eventData);
+        try {
+            const eventData = JSON.parse(message);
+            
+            // Forward to all connected socket clients immediately
+            io.emit('new_event', eventData);
+
+            // Persist the event to the database if it matches one of the valid event types
+            const validTypes = ['goal', 'assist', 'save', 'yellow_card', 'red_card', 'pass'];
+            if (eventData && validTypes.includes(eventData.type)) {
+                const matchId = eventData.match_id || 1;
+
+                // Ensure Match exists
+                await Match.findOrCreate({
+                    where: { id: matchId },
+                    defaults: {
+                        home_team_id: 1, // Default Teams from schema.sql
+                        away_team_id: 2,
+                        scheduled_at: new Date(),
+                        status: 'live'
+                    }
+                });
+
+                // Ensure Player exists (if a positive ID is supplied)
+                let playerId = eventData.player_id;
+                if (playerId && playerId > 0) {
+                    await Player.findOrCreate({
+                        where: { id: playerId },
+                        defaults: {
+                            name: `Jogador ${playerId}`,
+                            team_id: 1, // Default Team
+                            number: playerId,
+                            position: 'Desconhecido'
+                        }
+                    });
+                } else {
+                    playerId = null;
+                }
+
+                // Save event
+                await Event.create({
+                    match_id: matchId,
+                    player_id: playerId,
+                    type: eventData.type,
+                    timestamp_match: eventData.timestamp_match || '00:00:00',
+                    video_highlight_url: eventData.video_highlight_url || null
+                });
+                console.log(`[API] Event '${eventData.type}' successfully persisted for Match ${matchId}`);
+            }
+        } catch (err) {
+            console.error('[API] Error processing and persisting live event:', err);
+        }
     });
 })();
 
