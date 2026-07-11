@@ -25,39 +25,23 @@ const NAV_ITEMS = [
   { id: 'times', label: 'Times', icon: Users },
 ];
 
-const SCHEDULE = {
-  weekLabel: 'Maio 20–26',
-  days: [
-    { short: 'Seg', num: 22 },
-    { short: 'Ter', num: 23 },
-    { short: 'Qua', num: 24 },
-  ],
-  rows: [
-    {
-      hour: '18:00',
-      cells: [
-        { title: 'Inter Amigos', variant: 'green' },
-        { title: 'Disponível', variant: 'empty' },
-        { title: 'Treino Kids', variant: 'green' },
-      ],
-    },
-    {
-      hour: '19:00',
-      cells: [
-        { title: 'Reserva Manut.', variant: 'dark' },
-        { title: 'Sócio Ouro', variant: 'green' },
-        { title: 'Disponível', variant: 'empty' },
-      ],
-    },
-    {
-      hour: '20:00',
-      cells: [
-        { title: 'Disponível', variant: 'empty' },
-        { title: 'Inter Amigos', variant: 'green' },
-        { title: 'Reserva Manut.', variant: 'dark' },
-      ],
-    },
-  ],
+const MONTHS_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+const getMonday = (d) => {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+};
+
+const formatDateStr = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const REPLAYS = [
@@ -184,55 +168,121 @@ function ProgressBar({ value }) {
   );
 }
 
-function ArenaSchedule() {
+function ArenaSchedule({ onNavigate, reservations = [], currentDate }) {
+  const refDate = currentDate || new Date(2026, 6, 7);
+  const monday = getMonday(refDate);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const mDay = monday.getDate();
+  const mMonth = MONTHS_PT[monday.getMonth()].slice(0, 3);
+  const sDay = sunday.getDate();
+  const sMonth = MONTHS_PT[sunday.getMonth()].slice(0, 3);
+  const year = monday.getFullYear();
+  const weekLabel = monday.getMonth() === sunday.getMonth()
+    ? `${mDay} - ${sDay} de ${MONTHS_PT[monday.getMonth()]}, ${year}`
+    : `${mDay} de ${mMonth} - ${sDay} de ${sMonth}, ${year}`;
+
+  const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((short, index) => {
+    const dayDate = new Date(monday);
+    dayDate.setDate(monday.getDate() + index);
+    return {
+      short,
+      num: dayDate.getDate(),
+      dateStr: formatDateStr(dayDate),
+    };
+  });
+
+  const rows = [
+    { hour: '07:00', idx: 0 },
+    { hour: '08:00', idx: 1 },
+    { hour: '09:00', idx: 2 },
+    { hour: '10:00', idx: 3 },
+    { hour: '11:00', idx: 4 },
+    { hour: '12:00', idx: 5 },
+    { hour: '13:00', idx: 6 },
+    { hour: '14:00', idx: 7 },
+    { hour: '15:00', idx: 8 },
+    { hour: '16:00', idx: 9 },
+    { hour: '17:00', idx: 10 },
+    { hour: '18:00', idx: 11 },
+    { hour: '19:00', idx: 12 },
+    { hour: '20:00', idx: 13 },
+    { hour: '21:00', idx: 14 },
+    { hour: '22:00', idx: 15 },
+  ];
+
   return (
     <div className="schedule-card">
-      <div className="schedule-header">
-        <h2 className="section-title">Agenda da Arena</h2>
-        <div className="schedule-controls">
-          <button className="schedule-nav-btn"><ChevronLeft size={16} /></button>
-          <span className="schedule-week">{SCHEDULE.weekLabel}</span>
-          <button className="schedule-nav-btn"><ChevronRight size={16} /></button>
+      <div style={{ pointerEvents: 'none', opacity: 0.95 }}>
+        <div className="schedule-header">
+          <h2 className="section-title">Agenda da Arena</h2>
+          <div className="schedule-controls">
+            <button className="schedule-nav-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+              <ChevronLeft size={16} />
+            </button>
+            <span className="schedule-week">{weekLabel}</span>
+            <button className="schedule-nav-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="schedule-table-wrap">
+          <table className="schedule-table">
+            <thead>
+              <tr>
+                <th className="col-hour">Hora</th>
+                {days.map((d) => (
+                  <th key={d.num}>
+                    {d.short} <span className="day-num">({d.num})</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.hour}>
+                  <td className="cell-hour">{row.hour}</td>
+                  {days.map((day, di) => {
+                    const reservation = reservations.find(
+                      (res) =>
+                        res.date === day.dateStr &&
+                        res.startHourIdx <= row.idx &&
+                        row.idx < res.startHourIdx + res.durationHours
+                    );
+
+                    let title = 'Disponível';
+                    let variant = 'empty';
+
+                    if (reservation) {
+                      title = reservation.status === 'maintenance' ? 'Manutenção' : reservation.title;
+                      variant = reservation.status === 'maintenance' ? 'dark' : 'green';
+                    }
+
+                    return (
+                      <td key={di} className="cell-slot">
+                        <div className={`slot-block slot-${variant}`}>
+                          {title}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div className="schedule-table-wrap">
-        <table className="schedule-table">
-          <thead>
-            <tr>
-              <th className="col-hour">Hora</th>
-              {SCHEDULE.days.map((d) => (
-                <th key={d.num}>
-                  {d.short} <span className="day-num">({d.num})</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {SCHEDULE.rows.map((row) => (
-              <tr key={row.hour}>
-                <td className="cell-hour">{row.hour}</td>
-                {row.cells.map((cell, ci) => (
-                  <td key={ci} className="cell-slot">
-                    <div className={`slot-block slot-${cell.variant}`}>
-                      {cell.title}
-                    </div>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <button className="schedule-footer-link">
+      <button className="schedule-footer-link" onClick={() => onNavigate('agenda')}>
         Ver Agenda Completa <ArrowRight size={16} />
       </button>
     </div>
   );
 }
 
-function RecentReplays() {
+function RecentReplays({ replays = [], onNavigate, onWatchReplay }) {
   return (
     <div className="replays-card">
       <div className="replays-header">
@@ -241,21 +291,32 @@ function RecentReplays() {
       </div>
 
       <div className="replays-list">
-        {REPLAYS.map((r) => (
-          <div key={r.id} className="replay-item">
+        {replays.map((r) => (
+          <div 
+            key={r.id} 
+            className="replay-item" 
+            onClick={() => onWatchReplay && onWatchReplay(r)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="replay-thumb">
-              <img src={r.thumb} alt={r.title} />
-              <span className="replay-duration">{r.duration}</span>
+              {r.thumb ? (
+                <img src={r.thumb} alt={r.title} />
+              ) : (
+                <video src={r.videoUrl} preload="metadata" muted />
+              )}
+              <span className="replay-duration">{r.time || r.duration}</span>
             </div>
             <div className="replay-meta">
               <span className="replay-title">{r.title}</span>
-              <span className="replay-location">{r.location}</span>
+              <span className="replay-location">{r.badge || r.location}</span>
             </div>
           </div>
         ))}
       </div>
 
-      <button className="gallery-button">ACESSAR GALERIA</button>
+      <button className="gallery-button" onClick={() => onNavigate('replays')}>
+        ACESSAR GALERIA
+      </button>
     </div>
   );
 }
@@ -280,7 +341,19 @@ function WeatherWidget() {
 
 // ───── Main Dashboard ─────────────────────────────────────
 
-export default function Dashboard({ user, onLogout, onNavigate }) {
+export default function Dashboard({ user, onLogout, onNavigate, reservations = [], currentDate, replays = [], onWatchReplay, teams = [] }) {
+  const totalTeamsCount = teams.length;
+  const refDate = currentDate || new Date(2026, 6, 7);
+  const mon = getMonday(refDate);
+  const weekDateStrings = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return formatDateStr(d);
+  });
+
+  const weeklyReservationsCount = reservations.filter(res => weekDateStrings.includes(res.date)).length;
+  const weeklyReplaysCount = replays.filter(rep => rep.date === 'Hoje' || weekDateStrings.includes(rep.date)).length;
+
   return (
     <div className="dashboard-shell">
       <Sidebar
@@ -322,41 +395,38 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
           <KpiCard
             icon={CalendarCheck}
             iconBg="icon-green"
-            label="Reservas Ativas"
-            value="24"
-            badge="+12%"
+            label="Reservas da Semana"
+            value={weeklyReservationsCount.toString()}
+            badge={weeklyReservationsCount > 0 ? `+${weeklyReservationsCount}` : "0"}
             badgeType="badge-positive"
-            footer="vs. semana passada"
+            footer="nesta semana"
           />
           <KpiCard
             icon={Video}
             iconBg="icon-blue"
             label="Novos Replays"
-            value="158"
-            badge="+5"
+            value={weeklyReplaysCount.toString()}
+            badge={weeklyReplaysCount > 0 ? `+${weeklyReplaysCount}` : "0"}
             badgeType="badge-positive"
-            footer="últimos 7 dias"
+            footer="nesta semana"
           />
           <KpiCard
-            icon={BarChart3}
+            icon={Users}
             iconBg="icon-amber"
-            label="Ocupação"
-            value="Média"
-            badge="82%"
-            badgeType="badge-neutral"
-          >
-            <ProgressBar value={82} />
-          </KpiCard>
-          <CtaCard />
+            label="Times Cadastrados"
+            value={totalTeamsCount.toString()}
+            badge={totalTeamsCount > 0 ? `+${totalTeamsCount}` : "0"}
+            badgeType="badge-positive"
+            footer="no total"
+          />
         </section>
 
         {/* Main Grid: Schedule + Right sidebar */}
         <section className="main-grid">
-          <ArenaSchedule />
+          <ArenaSchedule onNavigate={onNavigate} reservations={reservations} currentDate={currentDate} />
 
           <div className="right-sidebar">
-            <RecentReplays />
-            <WeatherWidget />
+            <RecentReplays replays={replays} onNavigate={onNavigate} onWatchReplay={onWatchReplay} />
           </div>
         </section>
       </main>
