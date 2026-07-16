@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Home, PlayCircle, Calendar, Settings, Bell, HelpCircle,
   Search, SlidersHorizontal, LogOut, Download, Share2,
-  Calendar as CalendarIcon, Clock, ChevronDown, X
+  Calendar as CalendarIcon, Clock, ChevronDown, X, Users, Info
 } from 'lucide-react';
 import './Replays.css';
 
@@ -12,70 +12,10 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Página Inicial', icon: Home },
   { id: 'replays', label: 'Replays', icon: PlayCircle },
   { id: 'agenda', label: 'Agenda da Arena', icon: Calendar },
+  { id: 'times', label: 'Times', icon: Users },
 ];
 
-const REPLAYS_DATA = [
-  {
-    id: 1,
-    badge: 'Campo 01',
-    thumb: '/images/replay_card_1.jpg',
-    time: '00:07',
-    title: 'Gol de Futebol - Lance 1',
-    date: 'Hoje',
-    hour: '19:30',
-    videoUrl: '/highlights/match_1_gol_1.mp4',
-  },
-  {
-    id: 2,
-    badge: 'Campo 01',
-    thumb: '/images/replay_card_2.jpg',
-    time: '00:07',
-    title: 'Gol de Futebol - Lance 2',
-    date: 'Hoje',
-    hour: '19:35',
-    videoUrl: '/highlights/match_1_gol_2.mp4',
-  },
-  {
-    id: 3,
-    badge: 'Campo 01',
-    thumb: '/images/replay_card_3.jpg',
-    time: '00:07',
-    title: 'Gol de Futebol - Lance 3',
-    date: 'Hoje',
-    hour: '19:40',
-    videoUrl: '/highlights/match_1_gol_3.mp4',
-  },
-  {
-    id: 4,
-    badge: 'Campo 01',
-    thumb: '/images/replay_card_4.jpg',
-    time: '00:07',
-    title: 'Gol de Futebol - Lance 4',
-    date: 'Hoje',
-    hour: '19:45',
-    videoUrl: '/highlights/match_1_gol_4.mp4',
-  },
-  {
-    id: 5,
-    badge: 'Campo 02',
-    thumb: '/images/replay_card_5.jpg',
-    time: '01:30',
-    title: 'Processamento Radar - fut7_test',
-    date: 'Hoje',
-    hour: '12:30',
-    videoUrl: '/highlights/output_test.mp4'
-  },
-  {
-    id: 6,
-    badge: 'Campo 01',
-    thumb: '/images/replay_card_6.jpg',
-    time: '01:55',
-    title: 'Análise de Passes - Pass_test',
-    date: 'Hoje',
-    hour: '12:35',
-    videoUrl: '/highlights/output_pass.mp4'
-  }
-];
+
 
 // ───── Sub-components ─────────────────────────────────────
 
@@ -116,11 +56,17 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
 
         <div className="user-profile">
           <div className="user-avatar">
-            {user?.nome?.charAt(0)?.toUpperCase() || 'A'}
+            {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="user-info">
-            <span className="user-name">Admin Arena</span>
-            <span className="user-role">Premium Account</span>
+            <span className="user-name">{user?.nome || 'Usuário'}</span>
+            <span className="user-role">
+              {user?.role === 'admin'
+                ? 'Admin Principal'
+                : user?.role === 'operador'
+                  ? 'Operador'
+                  : 'Cliente'}
+            </span>
           </div>
           <button className="logout-btn" onClick={onLogout} title="Sair">
             <LogOut size={16} />
@@ -133,8 +79,9 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
 
 // ───── Main Component ──────────────────────────────────────
 
-export default function Replays({ user, onNavigate, onLogout }) {
+export default function Replays({ user, onNavigate, onLogout, replays = [], initialReplay, onClearInitialReplay }) {
   const [activeVideo, setActiveVideo] = useState(null);
+  const [activeStats, setActiveStats] = useState(null);
 
   const handleWatch = (item) => {
     if (item.videoUrl) {
@@ -143,6 +90,16 @@ export default function Replays({ user, onNavigate, onLogout }) {
       alert("Vídeo ainda não processado ou indisponível.");
     }
   };
+
+  useEffect(() => {
+    if (initialReplay) {
+      const match = replays.find(r => r.id === initialReplay.id);
+      if (match) {
+        handleWatch(match);
+      }
+      onClearInitialReplay();
+    }
+  }, [initialReplay, replays, onClearInitialReplay]);
 
   return (
     <div className="replays-shell">
@@ -214,7 +171,7 @@ export default function Replays({ user, onNavigate, onLogout }) {
 
         {/* Grid de Replays */}
         <div className="replays-grid">
-          {REPLAYS_DATA.map((item) => (
+          {replays.map((item) => (
             <div key={item.id} className="gallery-card">
               {/* Top (Thumbnail) */}
               <div 
@@ -223,7 +180,11 @@ export default function Replays({ user, onNavigate, onLogout }) {
                 style={{ cursor: item.videoUrl ? 'pointer' : 'default' }}
               >
                 <span className="card-badge">{item.badge}</span>
-                <img src={item.thumb} alt={item.title} />
+                {item.thumb ? (
+                  <img src={item.thumb} alt={item.title} />
+                ) : (
+                  <video src={item.videoUrl} preload="metadata" className="card-video-preview" muted />
+                )}
                 <span className="card-time">{item.time}</span>
                 
                 {item.videoUrl && (
@@ -274,6 +235,18 @@ export default function Replays({ user, onNavigate, onLogout }) {
                     <Download size={18} />
                   </button>
                 )}
+                
+                {item.stats && (
+                  <button 
+                    className="btn-icon" 
+                    onClick={() => setActiveStats(item)}
+                    title="Informações do Confronto"
+                    style={{ color: 'var(--accent-green)' }}
+                  >
+                    <Info size={18} />
+                  </button>
+                )}
+
                 <button className="btn-icon" onClick={() => item.videoUrl && navigator.clipboard.writeText(window.location.origin + item.videoUrl).then(() => alert('Link copiado!'))}>
                   <Share2 size={18} />
                 </button>
@@ -300,6 +273,84 @@ export default function Replays({ user, onNavigate, onLogout }) {
                 autoPlay 
                 src={activeVideo.videoUrl}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confrontation Stats Modal */}
+      {activeStats && (
+        <div className="stats-modal-overlay" onClick={() => setActiveStats(null)}>
+          <div className="stats-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="stats-modal-header">
+              <h2 className="stats-modal-title">Estatísticas do Confronto</h2>
+              <button className="stats-modal-close" onClick={() => setActiveStats(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="stats-modal-body">
+              {/* Scoreboard */}
+              <div className="stats-scoreboard">
+                <div className="scoreboard-team">
+                  <div className="team-shield corinthians-shield">SCCP</div>
+                  <span className="team-name">{activeStats.stats.homeTeam}</span>
+                </div>
+                
+                <div className="scoreboard-score-wrap">
+                  <span className="scoreboard-score">{activeStats.stats.homeScore}</span>
+                  <span className="scoreboard-divider">-</span>
+                  <span className="scoreboard-score">{activeStats.stats.awayScore}</span>
+                </div>
+                
+                <div className="scoreboard-team">
+                  <div className="team-shield sharks-shield">SF</div>
+                  <span className="team-name">{activeStats.stats.awayTeam}</span>
+                </div>
+              </div>
+
+              <div className="scoreboard-match-status">Fim de Jogo</div>
+
+              {/* Stats Bars */}
+              <div className="stats-details-list">
+                {/* Gols Row */}
+                <div className="stat-row">
+                  <div className="stat-label-row">
+                    <span className="stat-val-left">{activeStats.stats.homeScore}</span>
+                    <span className="stat-name">Gols</span>
+                    <span className="stat-val-right">{activeStats.stats.awayScore}</span>
+                  </div>
+                  <div className="stat-bar-container">
+                    <div 
+                      className="stat-bar-fill left" 
+                      style={{ width: `${(activeStats.stats.homeScore / (activeStats.stats.homeScore + activeStats.stats.awayScore || 1)) * 100}%` }}
+                    />
+                    <div 
+                      className="stat-bar-fill right" 
+                      style={{ width: `${(activeStats.stats.awayScore / (activeStats.stats.homeScore + activeStats.stats.awayScore || 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Passes Row */}
+                <div className="stat-row">
+                  <div className="stat-label-row">
+                    <span className="stat-val-left">{activeStats.stats.homePasses}</span>
+                    <span className="stat-name">Passes</span>
+                    <span className="stat-val-right">{activeStats.stats.awayPasses}</span>
+                  </div>
+                  <div className="stat-bar-container">
+                    <div 
+                      className="stat-bar-fill left" 
+                      style={{ width: `${(activeStats.stats.homePasses / (activeStats.stats.homePasses + activeStats.stats.awayPasses || 1)) * 100}%` }}
+                    />
+                    <div 
+                      className="stat-bar-fill right" 
+                      style={{ width: `${(activeStats.stats.awayPasses / (activeStats.stats.homePasses + activeStats.stats.awayPasses || 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

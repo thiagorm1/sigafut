@@ -71,28 +71,33 @@ const Camera = sequelize.define('Camera', {
 
 const Event = sequelize.define('Event', {
     type: {
-        type: DataTypes.ENUM('goal', 'assist', 'save', 'yellow_card', 'red_card'),
+        type: DataTypes.ENUM('goal', 'assist', 'save', 'yellow_card', 'red_card', 'pass'),
         allowNull: false
     },
     timestamp_match: DataTypes.STRING,
     video_highlight_url: DataTypes.STRING
+}, {
+    tableName: 'events',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: false
 });
 
 // Associations
-Team.hasMany(Player);
-Player.belongsTo(Team);
+Team.hasMany(Player, { foreignKey: 'team_id' });
+Player.belongsTo(Team, { foreignKey: 'team_id' });
 
 Match.belongsTo(Team, { as: 'HomeTeam', foreignKey: 'home_team_id' });
 Match.belongsTo(Team, { as: 'AwayTeam', foreignKey: 'away_team_id' });
 
-Match.hasMany(Camera);
-Camera.belongsTo(Match);
+Match.hasMany(Camera, { foreignKey: 'match_id' });
+Camera.belongsTo(Match, { foreignKey: 'match_id' });
 
-Match.hasMany(Event);
-Event.belongsTo(Match);
+Match.hasMany(Event, { foreignKey: 'match_id' });
+Event.belongsTo(Match, { foreignKey: 'match_id' });
 
-Player.hasMany(Event);
-Event.belongsTo(Player);
+Player.hasMany(Event, { foreignKey: 'player_id' });
+Event.belongsTo(Player, { foreignKey: 'player_id' });
 
 module.exports = {
     sequelize,

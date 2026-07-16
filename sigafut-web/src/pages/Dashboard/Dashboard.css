@@ -717,7 +717,8 @@
   flex-shrink: 0;
 }
 
-.replay-thumb img {
+.replay-thumb img,
+.replay-thumb video {
   width: 100%;
   height: 100%;
   object-fit: cover;
