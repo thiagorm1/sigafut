@@ -1,6 +1,6 @@
 # ⚽ SIGAFUT — Sistema de Gerenciamento de Arenas de Futebol
 
-Sistema de gerenciamento de arenas de futsal com detecção de eventos em tempo real via visão computacional.
+Sistema de gerenciamento de arenas de Futebol com detecção de eventos em tempo real via visão computacional.
 
 O SIGAFUT processa feeds de câmeras RTSP usando YOLO/OpenCV para detectar automaticamente eventos de partidas (gols, assistências, defesas, cartões) e exibi-los em um dashboard em tempo real via WebSockets.
 
