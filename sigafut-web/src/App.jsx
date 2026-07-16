@@ -5,10 +5,14 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import Replays from './pages/Replays/Replays';
 import Schedule from './pages/Schedule/Schedule';
 import Times from './pages/Times/Times';
+import Settings from './pages/Settings/Settings';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login'); // 'login' | 'register' | 'dashboard' | 'replays' | 'agenda' | 'times'
+  const [currentPage, setCurrentPage] = useState('login'); // 'login' | 'register' | 'dashboard' | 'replays' | 'agenda' | 'times' | 'settings'
   const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('sigafut_theme') || 'dark';
+  });
   const [currentDate, setCurrentDate] = useState(() => new Date(2026, 6, 7));
   const [replays, setReplays] = useState([
     {
@@ -74,6 +78,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem('sigafut_teams', JSON.stringify(teams));
   }, [teams]);
+
+  useEffect(() => {
+    localStorage.setItem('sigafut_theme', theme);
+    document.body.className = theme === 'light' ? 'light-theme' : 'dark-theme';
+  }, [theme]);
 
   useEffect(() => {
     const titles = {
@@ -177,6 +186,22 @@ function App() {
         }} 
         teams={teams}
         setTeams={setTeams}
+      />
+    );
+  }
+
+  if (currentPage === 'settings') {
+    return (
+      <Settings 
+        user={user} 
+        setUser={setUser}
+        theme={theme}
+        setTheme={setTheme}
+        onNavigate={setCurrentPage}
+        onLogout={() => {
+          setUser(null);
+          setCurrentPage('login');
+        }} 
       />
     );
   }

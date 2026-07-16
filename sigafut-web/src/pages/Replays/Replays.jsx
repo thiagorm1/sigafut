@@ -47,7 +47,10 @@ function Sidebar({ user, activePage, onNavigate, onLogout }) {
       </div>
 
       <div className="sidebar-bottom">
-        <button className="nav-link settings-link">
+        <button 
+          className={`nav-link settings-link ${activePage === 'settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
+        >
           <Settings size={20} />
           <span>Configurações</span>
         </button>
