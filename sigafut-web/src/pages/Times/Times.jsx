@@ -156,7 +156,10 @@ export default function Times({ user, onNavigate, onLogout, teams, setTeams }) {
         </div>
 
         <div className="sidebar-bottom">
-          <button className="nav-link settings-link">
+          <button 
+            className="nav-link settings-link"
+            onClick={() => onNavigate('settings')}
+          >
             <Settings size={20} />
             <span>Configurações</span>
           </button>
