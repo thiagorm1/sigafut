@@ -58,6 +58,10 @@ services:
     container_name: sigafut-web
     ports:
       - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - VITE_USE_POLLING=true
     depends_on:
       - sigafut-api
     volumes:
